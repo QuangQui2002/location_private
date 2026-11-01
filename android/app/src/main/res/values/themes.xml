@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.GiaDinhSK" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/pink</item>
+        <item name="colorPrimaryDark">@color/pink_dark</item>
+        <item name="colorSecondary">@color/pink_light</item>
+        <item name="android:statusBarColor">@color/pink</item>
+    </style>
+</resources>

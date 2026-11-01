@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="google" content="notranslate">
+<title>Gia Đình SK</title>
+<link rel="icon" href="heart.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --pink: #e91e63;
+    --pink-soft: #fde4ec;
+    --text: #2b2b2b;
+    --muted: #6b6b6b;
+    --card: #fff;
+    --line: #eee;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); background: #e8e8e8; }
+  #map { position: fixed; inset: 0; }
+
+  .panel {
+    position: fixed; z-index: 1000; top: 12px; left: 12px; width: 340px; max-height: calc(100% - 24px);
+    display: flex; flex-direction: column;
+    background: var(--card); border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.18); overflow: hidden;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    background: linear-gradient(90deg, var(--pink), #ff5c8a); color: #fff;
+  }
+  .brand svg { width: 26px; height: 26px; flex: none; }
+  .brand h1 { font-size: 18px; margin: 0; flex: 1; }
+  #conn { font-size: 12px; opacity: .9; white-space: nowrap; }
+
+  #list { overflow-y: auto; }
+  .member { padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; gap: 12px; align-items: center; }
+  .member:hover, .member.active { background: var(--pink-soft); }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-weight: 600; }
+  .meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .note { font-size: 13px; margin-top: 2px; color: var(--pink); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .online { background: #2ecc71; } .offline { background: #bbb; }
+  .empty { padding: 16px; color: var(--muted); line-height: 1.5; font-size: 14px; }
+
+  .controls { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); }
+  #locateBtn { padding: 12px; font-size: 16px; font-weight: 600; border: 0; border-radius: 10px; background: var(--pink); color: #fff; cursor: pointer; }
+  #locateBtn:disabled { opacity: .6; cursor: default; }
+  .opts { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .opts label { display: flex; gap: 5px; align-items: center; cursor: pointer; }
+
+  .heart-pin { background: none; border: none; }
+  .heart-pin .pin { position: relative; width: 44px; height: 42px; }
+  .heart-pin svg { filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
+  .heart-pin span { position: absolute; top: 11px; left: 0; width: 44px; text-align: center; color: #fff; font-weight: 700; font-size: 15px; }
+  .heart-pin .pulse {
+    position: absolute; left: 50%; bottom: -6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%;
+    background: var(--c); opacity: .6; animation: pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse { from { transform: scale(.6); opacity: .7; } to { transform: scale(3.2); opacity: 0; } }
+
+  .leaflet-control-layers { border-radius: 10px !important; }
+
+  @media (max-width: 700px) {
+    .panel { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 48%; border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+    .panel .brand { padding: 10px 16px; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="panel">
+  <div class="brand">
+    <svg viewBox="0 0 24 24"><path fill="#fff" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <h1>Gia Đình SK</h1>
+    <span id="conn">Đang kết nối…</span>
+  </div>
+  <div id="list"></div>
+  <div class="controls">
+    <button id="locateBtn">📍 Định vị ngay</button>
+    <div class="opts">
+      <label><input type="checkbox" id="follow" checked> Bám theo trên bản đồ</label>
+      <label><input type="checkbox" id="autoLocate" checked> Tự cập nhật 20s</label>
+      <label><input type="checkbox" id="showPath"> Đường đi 24h</label>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const COLORS = ['#e91e63', '#3f51b5', '#009688', '#ff9800', '#9c27b0', '#4caf50', '#f44336', '#2196f3'];
+const AUTO_MS = 20000;
+const FOLLOW_ZOOM = 17;
+const isMobile = () => window.matchMedia('(max-width: 700px)').matches;
+
+const map = L.map('map', { zoomControl: false }).setView([16.05, 108.2], 6);
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// tile.openstreetmap.org thường bị chặn ở VN, CARTO thì cần API key, nên dùng Esri và OSM.de.
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
+const esriLayer = (path, opts = {}) => L.tileLayer(`${ESRI}/${path}/MapServer/tile/{z}/{y}/{x}`, {
+  maxZoom: 20,
+  maxNativeZoom: 19,
+  ...opts,
+});
+const streets = esriLayer('World_Street_Map', { attribution: '&copy; Esri, HERE, OpenStreetMap' });
+const osm = L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+  maxZoom: 20,
+  maxNativeZoom: 19,
+  attribution: '&copy; OpenStreetMap',
+});
+const satellite = L.layerGroup([
+  esriLayer('World_Imagery', { attribution: '&copy; Esri, Maxar' }),
+  esriLayer('Reference/World_Transportation'),
+  esriLayer('Reference/World_Boundaries_and_Places'),
+]);
+const baseLayers = { 'Bản đồ': streets, 'Chi tiết (OSM)': osm, 'Vệ tinh': satellite };
+let baseName = 'Bản đồ';
+try { if (baseLayers[localStorage.getItem('baseLayer')]) baseName = localStorage.getItem('baseLayer'); } catch {}
+baseLayers[baseName].addTo(map);
+L.control.layers(baseLayers, null, { position: 'topright', collapsed: isMobile() }).addTo(map);
+map.on('baselayerchange', (e) => { try { localStorage.setItem('baseLayer', e.name); } catch {} });
+
+const devices = new Map();
+const notes = {}; // ghi chú trạng thái cho từng máy: "Đang định vị…", lỗi…
+const markers = {};
+const circles = {};
+let pathLayer = null;
+let selected = null;
+let ws = null;
+let autoTimer = null;
+let programmaticMove = false;
+
+const $ = (id) => document.getElementById(id);
+
+try { $('autoLocate').checked = localStorage.getItem('autoLocate') !== '0'; } catch {}
+
+function colorFor(id) {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return COLORS[h % COLORS.length];
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function heartIcon(color, letter) {
+  return L.divIcon({
+    className: 'heart-pin',
+    iconSize: [44, 42],
+    iconAnchor: [22, 40],
+    popupAnchor: [0, -36],
+    html: `<div class="pin" style="--c:${color}"><div class="pulse"></div>
+      <svg width="44" height="42" viewBox="0 0 24 22"><path fill="${color}" stroke="#fff" stroke-width="1.2"
+      d="M12 21s-7.5-4.6-10-9.3C.4 8.6 2 4 6.2 3.3 8.6 2.9 10.6 4 12 6c1.4-2 3.4-3.1 5.8-2.7C22 4 23.6 8.6 22 11.7 19.5 16.4 12 21 12 21z"/></svg>
+      <span>${letter}</span></div>`,
+  });
+}
+
+function ago(t) {
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return 'vừa xong';
+  if (s < 3600) return Math.floor(s / 60) + ' phút trước';
+  if (s < 86400) return Math.floor(s / 3600) + ' giờ trước';
+  return Math.floor(s / 86400) + ' ngày trước';
+}
+
+function popupHtml(d) {
+  const p = d.last;
+  const rows = [
+    `<b>${esc(d.name)}</b>`,
+    `Lúc ${new Date(p.time).toLocaleTimeString('vi-VN')} ${new Date(p.time).toLocaleDateString('vi-VN')}`,
+  ];
+  if (p.accuracy != null) rows.push(`Sai số: ±${Math.round(p.accuracy)} m`);
+  if (p.speed != null && p.speed > 0) rows.push(`Tốc độ: ${(p.speed * 3.6).toFixed(1)} km/h`);
+  if (p.battery != null) rows.push(`Pin: ${Math.round(p.battery)}%`);
+  rows.push(`<a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener">Chỉ đường bằng Google Maps</a>`);
+  return rows.join('<br>');
+}
+
+function sorted() {
+  return [...devices.values()].sort((a, b) => (b.online - a.online) || ((b.last?.time || 0) - (a.last?.time || 0)));
+}
+
+function renderList() {
+  const list = $('list');
+  if (!devices.size) {
+    list.innerHTML = `<div class="empty">Chưa có điện thoại nào kết nối.<br>Mở app <b>Gia Đình SK</b>, nhập địa chỉ server rồi bấm <b>Bật định vị ngầm</b>.</div>`;
+    return;
+  }
+  list.innerHTML = sorted().map((d) => {
+    const status = d.online ? 'Online' : `Offline · ${ago(d.lastSeen || 0)}`;
+    const where = d.last ? `Vị trí ${ago(d.last.time)}` : 'Chưa có vị trí';
+    const acc = d.last?.accuracy != null ? ` · ±${Math.round(d.last.accuracy)}m` : '';
+    const battery = d.last?.battery != null ? ` · 🔋${Math.round(d.last.battery)}%` : '';
+    return `<div class="member ${selected === d.id ? 'active' : ''}" data-id="${esc(d.id)}">
+      <div class="avatar" style="background:${colorFor(d.id)}">${esc(d.name.charAt(0).toUpperCase())}</div>
+      <div class="info">
+        <div class="name">${esc(d.name)}</div>
+        <div class="meta"><span class="dot ${d.online ? 'online' : 'offline'}"></span>${status}</div>
+        <div class="meta">${where}${acc}${battery}</div>
+        ${notes[d.id] ? `<div class="note">${esc(notes[d.id])}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMarker(d) {
+  if (!d.last) return;
+  const ll = [d.last.lat, d.last.lng];
+  const color = colorFor(d.id);
+  if (!markers[d.id]) {
+    circles[d.id] = L.circle(ll, { radius: 0, color, weight: 1, fillOpacity: 0.12, interactive: false }).addTo(map);
+    markers[d.id] = L.marker(ll, { icon: heartIcon(color, esc(d.name.charAt(0).toUpperCase())), zIndexOffset: 1000 })
+      .addTo(map)
+      .bindPopup('')
+      .on('click', () => select(d.id, false));
+  }
+  markers[d.id].setLatLng(ll).setPopupContent(popupHtml(d));
+  circles[d.id].setLatLng(ll).setRadius(d.last.accuracy || 0);
+}
+
+/** Đưa bản đồ tới vị trí của máy đang chọn (không làm tắt chế độ bám theo). */
+function focusSelected(animate = true) {
+  const d = devices.get(selected);
+  if (!d?.last) return;
+  const ll = L.latLng(d.last.lat, d.last.lng);
+  const zoom = Math.max(map.getZoom(), FOLLOW_ZOOM);
+  // Chừa chỗ cho bảng thông tin để ghim không bị che.
+  const offset = isMobile()
+    ? L.point(0, document.querySelector('.panel').offsetHeight / 2)
+    : L.point(-document.querySelector('.panel').offsetWidth / 2 - 6, 0);
+  const target = map.unproject(map.project(ll, zoom).add(offset), zoom);
+  programmaticMove = true;
+  if (animate && map.getZoom() >= 12) map.flyTo(target, zoom, { duration: 1 });
+  else map.setView(target, zoom, { animate: false });
+  map.once('moveend', () => { programmaticMove = false; });
+}
+
+async function renderPath() {
+  if (pathLayer) { map.removeLayer(pathLayer); pathLayer = null; }
+  if (!selected || !$('showPath').checked) return;
+  try {
+    const res = await fetch(`/api/history/${encodeURIComponent(selected)}`);
+    const pts = await res.json();
+    if (Array.isArray(pts) && pts.length > 1) {
+      pathLayer = L.polyline(pts.map((p) => [p.lat, p.lng]), { color: colorFor(selected), weight: 4, opacity: 0.7 }).addTo(map);
+    }
+  } catch {}
+}
+
+function select(id, pan = true) {
+  selected = id;
+  if (pan) {
+    $('follow').checked = true;
+    focusSelected();
+  }
+  renderList();
+  renderPath();
+}
+
+/** Tự chọn máy đầu tiên có vị trí để hiển thị ngay khi mở trang. */
+function ensureSelected() {
+  if (selected && devices.has(selected)) return;
+  const first = sorted().find((d) => d.last);
+  if (first) {
+    selected = first.id;
+    focusSelected(false);
+    renderPath();
+  }
+}
+
+function locate() {
+  if (ws?.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'locate' }));
+}
+
+function scheduleAuto() {
+  clearInterval(autoTimer);
+  if ($('autoLocate').checked && !document.hidden) {
+    locate();
+    autoTimer = setInterval(locate, AUTO_MS);
+  }
+}
+
+function onMessage(msg) {
+  if (msg.type === 'devices') {
+    devices.clear();
+    for (const d of msg.devices) { devices.set(d.id, d); renderMarker(d); }
+    ensureSelected();
+  } else if (msg.type === 'device') {
+    const d = msg.device;
+    const prev = devices.get(d.id);
+    // So theo lúc server nhận, vì máy đứng yên có thể gửi lại đúng vị trí cũ.
+    const isNewFix = d.last && d.last.received !== prev?.last?.received;
+    devices.set(d.id, d);
+    if (isNewFix) {
+      delete notes[d.id];
+      renderMarker(d);
+      if (!selected) ensureSelected();
+      else if (selected === d.id && $('follow').checked) focusSelected();
+      if (selected === d.id) renderPath();
+    }
+  } else if (msg.type === 'locating') {
+    notes[msg.id] = 'Đang lấy GPS…';
+  } else if (msg.type === 'offline') {
+    notes[msg.id] = 'Điện thoại đang offline – hiện vị trí cuối cùng';
+  } else if (msg.type === 'error') {
+    notes[msg.id] = 'Lỗi: ' + msg.message;
+  }
+  renderList();
+}
+
+function connect() {
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/viewer`);
+  ws.onopen = () => {
+    $('conn').textContent = '● Trực tuyến';
+    scheduleAuto();
+  };
+  ws.onmessage = (e) => {
+    try { onMessage(JSON.parse(e.data)); } catch {}
+  };
+  ws.onclose = () => {
+    $('conn').textContent = 'Mất kết nối…';
+    clearInterval(autoTimer);
+    setTimeout(connect, 3000);
+  };
+}
+
+// Người dùng tự kéo bản đồ thì ngừng bám theo, bấm "Định vị ngay" để bám lại.
+map.on('dragstart', () => {
+  if (!programmaticMove) $('follow').checked = false;
+});
+
+$('locateBtn').addEventListener('click', () => {
+  $('follow').checked = true;
+  focusSelected();
+  locate();
+  const btn = $('locateBtn');
+  btn.disabled = true;
+  setTimeout(() => { btn.disabled = false; }, 3000);
+});
+
+$('follow').addEventListener('change', (e) => { if (e.target.checked) focusSelected(); });
+
+$('autoLocate').addEventListener('change', (e) => {
+  try { localStorage.setItem('autoLocate', e.target.checked ? '1' : '0'); } catch {}
+  scheduleAuto();
+});
+
+$('showPath').addEventListener('change', renderPath);
+
+$('list').addEventListener('click', (e) => {
+  const el = e.target.closest('.member');
+  if (el) select(el.dataset.id);
+});
+
+// Ẩn tab thì ngừng hỏi vị trí để điện thoại đỡ tốn pin.
+document.addEventListener('visibilitychange', scheduleAuto);
+
+// Cập nhật chữ "x phút trước".
+setInterval(renderList, 30000);
+
+connect();
+</script>
+</body>
+</html>

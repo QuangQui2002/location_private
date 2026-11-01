@@ -1,0 +1,9 @@
+# Cấu hình để Render tự tạo dịch vụ. Render đọc file này khi bạn chọn "Blueprint".
+services:
+  - type: web
+    name: gia-dinh-sk
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start

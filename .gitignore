@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Dữ liệu vị trí sinh ra khi chạy
+server/data.json
+
+# Build của app Android (không cần đẩy lên Render)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+
+# Hệ điều hành / editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+{
+  "name": "gia-dinh-sk-server",
+  "version": "1.0.0",
+  "description": "Server nhận và hiển thị định vị cho app Gia Đình SK",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.22.1"
+  }
+}

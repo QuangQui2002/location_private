@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gia Đình SK</string>
+    <string name="subtitle">Luôn biết người thân đang ở đâu</string>
+    <string name="hint_name">Tên điện thoại (VD: Điện thoại của tôi)</string>
+    <string name="hint_server">Địa chỉ server (VD: http://192.168.1.10:3000)</string>
+    <string name="start">Bật định vị ngầm</string>
+    <string name="stop">Tắt định vị ngầm</string>
+    <string name="status_off">Đang tắt</string>
+    <string name="status_off_detail">Website sẽ không lấy được vị trí của máy này</string>
+    <string name="status_on">Đang bật định vị ngầm</string>
+    <string name="status_connecting">Đang kết nối server…</string>
+    <string name="status_ready">Đã kết nối – sẵn sàng gửi vị trí khi website yêu cầu</string>
+    <string name="status_locating">Website đang yêu cầu – đang lấy GPS…</string>
+    <string name="status_sent">Đã gửi vị trí cho website lúc %1$s</string>
+    <string name="status_no_gps">Không lấy được GPS (máy có đang tắt vị trí?)</string>
+    <string name="status_disconnected">Mất kết nối server (%1$s). Thử lại sau %2$d giây…</string>
+    <string name="status_bad_url">Địa chỉ server không hợp lệ</string>
+    <string name="channel_name">Định vị ngầm</string>
+    <string name="bg_title">Cho phép vị trí “Luôn luôn”</string>
+    <string name="bg_message">Để website lấy được vị trí kể cả khi bạn không mở app, hãy chọn “Luôn cho phép” (Allow all the time) ở màn hình tiếp theo.</string>
+    <string name="battery_title">Tắt tối ưu pin</string>
+    <string name="battery_message">Một số điện thoại sẽ tự tắt app khi chạy nền. Hãy cho phép Gia Đình SK không bị tối ưu pin để website luôn lấy được vị trí.</string>
+    <string name="ok">Đồng ý</string>
+    <string name="later">Để sau</string>
+    <string name="err_fields">Vui lòng nhập tên và địa chỉ server</string>
+    <string name="lock_title">Nhập mật khẩu</string>
+    <string name="lock_wrong">Sai mật khẩu, thử lại</string>
+    <string name="lock_wait">Nhập sai nhiều lần. Thử lại sau %1$d giây</string>
+    <string name="lock_delete">Xoá</string>
+    <string name="err_permission">Cần cấp quyền vị trí để định vị</string>
+</resources>
