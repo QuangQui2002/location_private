@@ -298,6 +298,8 @@ function onMessage(msg) {
     // So theo lúc server nhận, vì máy đứng yên có thể gửi lại đúng vị trí cũ.
     const isNewFix = d.last && d.last.received !== prev?.last?.received;
     devices.set(d.id, d);
+    // Máy offline thì bỏ chữ "Đang lấy GPS…" cũ cho khỏi hiểu nhầm.
+    if (!d.online) delete notes[d.id];
     if (isNewFix) {
       delete notes[d.id];
       renderMarker(d);
@@ -340,6 +342,11 @@ $('locateBtn').addEventListener('click', () => {
   $('follow').checked = true;
   focusSelected();
   locate();
+  // Máy nào đang offline thì báo ngay, vì server chỉ gọi được máy đang online.
+  for (const d of devices.values()) {
+    if (!d.online) notes[d.id] = 'Máy đang offline – không gọi được, xem mục khắc phục Redmi';
+  }
+  renderList();
   const btn = $('locateBtn');
   btn.disabled = true;
   setTimeout(() => { btn.disabled = false; }, 3000);
