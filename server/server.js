@@ -171,6 +171,22 @@ setInterval(() => {
   }
 }, 30000);
 
+// Endpoint nhẹ để tự ping giữ cho server khỏi ngủ (và để dịch vụ giám sát gọi vào).
+app.get('/health', (req, res) => res.json({ ok: true, time: Date.now() }));
+
+// Trên Render gói Free, server ngủ sau 15 phút không có ai truy cập.
+// Cứ mỗi vài phút tự gọi vào địa chỉ công khai của mình để Render thấy có lượt truy cập.
+const KEEPALIVE_MIN = Number(process.env.KEEPALIVE_MINUTES) || 10;
+const SELF_URL = process.env.RENDER_EXTERNAL_URL; // Render tự đặt biến này
+if (SELF_URL && KEEPALIVE_MIN > 0) {
+  setInterval(() => {
+    fetch(`${SELF_URL}/health`)
+      .then((r) => console.log(`[keepalive] ping ${r.status}`))
+      .catch((e) => console.log(`[keepalive] lỗi: ${e.message}`));
+  }, KEEPALIVE_MIN * 60 * 1000);
+}
+
 server.listen(PORT, () => {
   console.log(`Gia Đình SK server chạy tại http://localhost:${PORT}`);
+  if (SELF_URL) console.log(`Giữ thức mỗi ${KEEPALIVE_MIN} phút qua ${SELF_URL}/health`);
 });
