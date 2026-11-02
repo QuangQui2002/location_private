@@ -12,7 +12,7 @@ class Prefs(context: Context) {
         set(v) = sp.edit().putString(KEY_NAME, v).apply()
 
     var server: String
-        get() = sp.getString(KEY_SERVER, "") ?: ""
+        get() = sp.getString(KEY_SERVER, DEFAULT_SERVER) ?: DEFAULT_SERVER
         set(v) = sp.edit().putString(KEY_SERVER, v).apply()
 
     var enabled: Boolean
@@ -38,6 +38,9 @@ class Prefs(context: Context) {
         const val KEY_ENABLED = "enabled"
         const val KEY_STATUS = "status"
         const val KEY_DEVICE_ID = "device_id"
+
+        // Địa chỉ server mặc định, điền sẵn vào ô "Địa chỉ server" khi mới cài.
+        const val DEFAULT_SERVER = "https://gia-dinh-sk.onrender.com"
 
         fun normalizeServer(input: String): String {
             var s = input.trim().trimEnd('/')
