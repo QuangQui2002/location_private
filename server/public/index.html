@@ -41,6 +41,9 @@
   .name { font-weight: 600; }
   .meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .note { font-size: 13px; margin-top: 2px; color: var(--pink); }
+  .locate-one { flex: none; width: 44px; height: 44px; border: 0; border-radius: 10px; background: var(--pink-soft); font-size: 20px; cursor: pointer; }
+  .locate-one:hover { background: #f8c6d8; }
+  .member.active .locate-one { background: #fff; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
   .online { background: #2ecc71; } .offline { background: #bbb; }
   .empty { padding: 16px; color: var(--muted); line-height: 1.5; font-size: 14px; }
@@ -80,7 +83,7 @@
   </div>
   <div id="list"></div>
   <div class="controls">
-    <button id="locateBtn">📍 Định vị ngay</button>
+    <button id="locateBtn">📍 Định vị tất cả</button>
     <div class="opts">
       <label><input type="checkbox" id="follow" checked> Bám theo trên bản đồ</label>
       <label><input type="checkbox" id="autoLocate" checked> Tự cập nhật 20s</label>
@@ -205,6 +208,7 @@ function renderList() {
         <div class="meta">${where}${acc}${battery}</div>
         ${notes[d.id] ? `<div class="note">${esc(notes[d.id])}</div>` : ''}
       </div>
+      <button class="locate-one" data-id="${esc(d.id)}" title="Định vị máy này ngay">📍</button>
     </div>`;
   }).join('');
 }
@@ -274,9 +278,25 @@ function ensureSelected() {
   }
 }
 
-function locate() {
+function locate(id) {
   if (ws?.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify({ type: 'locate' }));
+  ws.send(JSON.stringify(id ? { type: 'locate', id } : { type: 'locate' }));
+}
+
+/** Gọi định vị riêng một thiết bị (khi bấm nút trên thẻ của máy đó). */
+function locateDevice(id) {
+  const d = devices.get(id);
+  selected = id;
+  $('follow').checked = true;
+  focusSelected();
+  if (d && !d.online) {
+    notes[id] = 'Máy đang offline – không gọi được, xem mục khắc phục Redmi';
+  } else {
+    notes[id] = 'Đang gọi…';
+    locate(id);
+  }
+  renderList();
+  renderPath();
 }
 
 function scheduleAuto() {
@@ -362,6 +382,11 @@ $('autoLocate').addEventListener('change', (e) => {
 $('showPath').addEventListener('change', renderPath);
 
 $('list').addEventListener('click', (e) => {
+  const locBtn = e.target.closest('.locate-one');
+  if (locBtn) {
+    locateDevice(locBtn.dataset.id);
+    return;
+  }
   const el = e.target.closest('.member');
   if (el) select(el.dataset.id);
 });
